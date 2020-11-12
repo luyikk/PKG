@@ -9,6 +9,7 @@ use std::collections::{HashMap, BTreeMap};
 pub struct Base {
     pub id: Cell<i32>,
     pub name: RefCell<String>,
+    pub data:RefCell<Vec<u8>>
 }
 
 
@@ -17,11 +18,13 @@ impl IBase for Base {
     fn write(&self, data: &mut Data, o: &ObjectManager) {
         o.write(data, &self.id);
         o.write(data, &self.name);
+        o.write(data, &self.data);
     }
 
     fn read(&self, data: &mut Data, o: &ObjectManager) -> Result<(), u32> {
         o.read(data, &self.id)?;
         o.read(data, &self.name)?;
+        o.read(data, &self.data)?;
         Ok(())
     }
 

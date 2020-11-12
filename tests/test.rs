@@ -275,17 +275,6 @@ pub fn test_obj_manager_register_create() {
 
 #[test]
 pub fn test_struct_1() -> Result<(), u32> {
-    let mut obj_manager = ObjectManager::new();
-    obj_manager.register::<Path>();
-    obj_manager.register::<PathBase>();
-
-    let mut data = Data::new();
-    obj_manager.write_to(&mut data, &1);
-    obj_manager.write_to(&mut data, &1.0f32);
-    obj_manager.write_to(&mut data, &"123123123".to_string());
-
-    let a = vec![1, 2, 3, 4, 5];
-    obj_manager.write_to(&mut data, &a);
 
     fn new_path() -> Path {
         Path {
@@ -302,6 +291,20 @@ pub fn test_struct_1() -> Result<(), u32> {
         Rc::new(path_base)
     }
 
+
+    let mut obj_manager = ObjectManager::new();
+    obj_manager.register::<Path>();
+    obj_manager.register::<PathBase>();
+    let mut data = Data::new();
+
+
+    obj_manager.write_to(&mut data, &1);
+    obj_manager.write_to(&mut data, &1.0f32);
+    obj_manager.write_to(&mut data, &"123123123".to_string());
+
+    let a = vec![1, 2, 3, 4, 5];
+    obj_manager.write_to(&mut data, &a);
+
     let path = new_path();
     obj_manager.write_to(&mut data, &path);
 
@@ -310,7 +313,7 @@ pub fn test_struct_1() -> Result<(), u32> {
     obj_manager.write_to(&mut data, &Some(new_path_base()));
 
     let mut hashmap = HashMap::new();
-    hashmap.insert(1, new_path_base());
+    hashmap.insert(1, Some(new_path_base()));
     obj_manager.write_to(&mut data, &hashmap);
 
     let mut treemap = BTreeMap::new();
@@ -320,7 +323,7 @@ pub fn test_struct_1() -> Result<(), u32> {
     let vec = vec![new_path_base(), new_path_base(), new_path_base()];
     obj_manager.write_to(&mut data, &vec);
 
-    //---------------------read----------------------------------------
+   // ---------------------read----------------------------------------
     let mut i = i32::default();
     obj_manager.read_from(&mut data, &mut i)?;
     assert_eq!(1, i);
@@ -351,8 +354,9 @@ pub fn test_struct_1() -> Result<(), u32> {
 
     let mut i = HashMap::new();
     obj_manager.read_from(&mut data, &mut i)?;
+
     let mut test = HashMap::new();
-    test.insert(1, new_path_base());
+    test.insert(1, Some(new_path_base()));
     assert_eq!(test, i);
 
     println!("{:?}", data);
@@ -369,7 +373,8 @@ pub fn test_struct_2() -> Result<(), u32> {
     let make_base = || {
         let base = Base::default();
         base.id.set(1000);
-        *base.name.borrow_mut() = "test ppp".to_string();
+        base.name.replace("test ppp".to_string());
+        base.data.replace(vec![1,2,3,4,5]);
         base
     };
 
@@ -377,7 +382,6 @@ pub fn test_struct_2() -> Result<(), u32> {
     obj_manager.write_to(&mut data, &base);
     let mut test_base = Base::default();
     obj_manager.read_from(&mut data, &mut test_base)?;
-
     assert_eq!(base, test_base);
 
     let test=Rc::new(make_base());
@@ -391,8 +395,35 @@ pub fn test_struct_2() -> Result<(), u32> {
         fly.x.set(1.1);
         fly.y.set(2.2);
         let base=Rc::new(make_base());
-        fly.wk.set(Rc::downgrade(&base));
-        fly.rc.set(base);
+        let base_weak=Rc::downgrade(&base);
+        fly.wk.set(base_weak.clone());
+        fly.rc.set(base.clone());
+        *fly.vec.borrow_mut()=vec![Some(base.clone()),Some(base.clone()),Some(base.clone()),Some(base.clone())];
+        *fly.vec_wk.borrow_mut()=vec![Some(base_weak.clone()),Some(base_weak.clone()),Some(base_weak.clone()),Some(base_weak.clone())];
+        let mut hashmap=HashMap::new();
+        hashmap.insert(1,Some(base.clone()));
+        hashmap.insert(2,Some(base.clone()));
+        hashmap.insert(3,Some(base.clone()));
+        *fly.hash.borrow_mut()=hashmap;
+
+        let mut hashmap=HashMap::new();
+        hashmap.insert(1,Some(base_weak.clone()));
+        hashmap.insert(2,Some(base_weak.clone()));
+        hashmap.insert(3,Some(base_weak.clone()));
+        *fly.hash_wk.borrow_mut()=hashmap;
+
+        let mut treemap=BTreeMap::new();
+        treemap.insert(1,Some(base.clone()));
+        treemap.insert(2,Some(base.clone()));
+        treemap.insert(3,Some(base.clone()));
+        *fly.treemap.borrow_mut()=treemap;
+
+        let mut treemap=BTreeMap::new();
+        treemap.insert(1,Some(base_weak.clone()));
+        treemap.insert(2,Some(base_weak.clone()));
+        treemap.insert(3,Some(base_weak.clone()));
+        *fly.treemap_wk.borrow_mut()=treemap;
+
         fly
     };
 
@@ -409,6 +440,30 @@ pub fn test_struct_2() -> Result<(), u32> {
     let x= m.wk.get().unwrap().upgrade().unwrap();
     assert_eq!(x,y);
 
+    let base=y.clone();
+    assert_eq!(vec![Some(base.clone()),Some(base.clone()),Some(base.clone()),Some(base.clone())],*m.vec.borrow_mut());
+    for x in m.vec_wk.borrow().iter() {
+        assert_eq!(base,x.clone().unwrap().upgrade().unwrap());
+    }
+
+    for (key,value) in test.hash.borrow().iter() {
+        assert!(*key>0&&*key<4,"{}",key);
+        assert_eq!(base,value.clone().unwrap());
+    }
+
+    for (key,value) in test.hash_wk.borrow().iter() {
+        assert!(*key>0&&*key<4,"{}",key);
+        assert_eq!(base,value.clone().unwrap().upgrade().unwrap());
+    }
+    for (i,(key,value)) in test.treemap.borrow().iter().enumerate() {
+        assert_eq!(i as i64+1,*key);
+        assert_eq!(base,value.clone().unwrap());
+    }
+
+    for (i,(key,value)) in test.treemap_wk.borrow().iter().enumerate() {
+        assert_eq!(i as i64+1,*key);
+        assert_eq!(base,value.clone().unwrap().upgrade().unwrap());
+    }
 
     Ok(())
 }
