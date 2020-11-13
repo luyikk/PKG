@@ -284,6 +284,8 @@ pub fn test_struct_1() -> Result<(), u32> {
         }
     }
 
+
+
     fn new_path_base() -> Rc<PathBase> {
         let path_base = PathBase::default();
         path_base.index.set(100);
@@ -466,4 +468,22 @@ pub fn test_struct_2() -> Result<(), u32> {
     }
 
     Ok(())
+}
+
+#[test]
+pub fn test_marco_struct(){
+    let mut obj_manager = ObjectManager::new();
+    obj_manager.register::<Foo>();
+    obj_manager.register::<Foo2>();
+
+    let foo:Rc<Foo2>=Rc::new(Foo2::default());
+    foo.ptr.set(Rc::new(Foo::default()));
+    let mut data = Data::new();
+    obj_manager.write_core(&mut data, &foo);
+
+    let x= obj_manager.read_core(&mut data).unwrap();
+    let x=x.cast::<Foo2>().unwrap();
+
+    assert_eq!(foo.to_string(),x.to_string());
+    println!("{}",x.to_string());
 }

@@ -63,7 +63,7 @@ pub struct Fly{
     pub treemap_wk:RefCell<BTreeMap<i64,Option<Weak<Base>>>>
 }
 
-impl IBase for Fly {
+impl pkg::interface::IBase for Fly {
     fn write(&self, data: &mut Data, o: &ObjectManager) {
         o.write(data,&self.base);
         o.write(data, &self.x);
@@ -98,7 +98,7 @@ impl IBase for Fly {
     }
 }
 
-impl IObjectBase for Fly {
+impl pkg::interface::IObjectBase for Fly {
     fn get_static_typeid() -> u16 {
         102
     }
@@ -107,3 +107,4 @@ impl IObjectBase for Fly {
         Some(Rc::new(Self::default()))
     }
 }
+
