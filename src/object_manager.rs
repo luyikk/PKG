@@ -7,15 +7,14 @@ use std::hash::Hash;
 use std::ops::Deref;
 use std::rc::{Rc, Weak};
 
-
 /// object 读取写入接口
 pub trait IObjectManager {
     fn write_to<T: WriteObject>(&self, data: &mut Data, arg: &T);
     fn write<T: WriteObject>(&self, data: &mut Data, arg: &T);
-    fn write_core<T:IBase>(&self,data:&mut Data,arg:&Rc<T>);
+    fn write_core<T: IBase>(&self, data: &mut Data, arg: &Rc<T>);
     fn read_from<T: ReadObject>(&self, data: &mut Data, arg: &mut T) -> Result<(), u32>;
     fn read<T: ReadOnlyObject>(&self, data: &mut Data, arg: &T) -> Result<(), u32>;
-    fn read_core(&self,data: &mut Data)->Result<Rc<dyn IBase>,u32>;
+    fn read_core(&self, data: &mut Data) -> Result<Rc<dyn IBase>, u32>;
 }
 
 pub struct ObjectManager {
@@ -24,23 +23,27 @@ pub struct ObjectManager {
 
 impl IObjectManager for ObjectManager {
     /// 写入
+    #[inline]
     fn write_to<T: WriteObject>(&self, data: &mut Data, arg: &T) {
         data.w_ptr_dict.clear();
         arg.write_(data, self);
     }
 
     /// 写入结构字段用
+    #[inline]
     fn write<T: WriteObject>(&self, data: &mut Data, arg: &T) {
         arg.write_(data, self);
     }
 
     ///写入RC<IBASE>
-    fn write_core<T:IBase>(&self, data: &mut Data, arg: &Rc<T>) {
+    #[inline]
+    fn write_core<T: IBase>(&self, data: &mut Data, arg: &Rc<T>) {
         //arg.write_(data,self);
-        self.write_ptr(data,arg);
+        self.write_ptr(data, arg);
     }
 
     /// 读取一个预设值
+    #[inline]
     fn read_from<T: ReadObject>(&self, data: &mut Data, arg: &mut T) -> Result<(), u32> {
         arg.read_(data, self)?;
         data.r_ptr_dict.clear();
@@ -48,28 +51,26 @@ impl IObjectManager for ObjectManager {
     }
 
     /// 用于结构读取
+    #[inline]
     fn read<T: ReadOnlyObject>(&self, data: &mut Data, arg: &T) -> Result<(), u32> {
         arg.read_(data, self)
     }
 
     /// 根据DATA 数据读取一个RC<ANY> 返回type_id
+    #[inline]
     fn read_core(&self, data: &mut Data) -> Result<Rc<dyn IBase>, u32> {
-        let mut value:Option<Rc<dyn IBase>>=None;
-        value.read_(data,self)?;
+        let mut value: Option<Rc<dyn IBase>> = None;
+        value.read_(data, self)?;
 
         match value {
-            None=>{
-                Err(line!())
-            },
-            Some(p)=>{
-                Ok(p)
-            }
+            None => Err(line!()),
+            Some(p) => Ok(p),
         }
-
     }
 }
 
 impl ObjectManager {
+    #[inline]
     pub fn new() -> ObjectManager {
         let mut fs: Vec<Box<dyn Fn() -> Option<Rc<dyn IBase>>>> = Vec::with_capacity(65536);
         for _ in 0..65536 {
@@ -80,12 +81,14 @@ impl ObjectManager {
     }
 
     /// 注册PKG
+    #[inline]
     pub fn register<T: IObjectBase + 'static>(&mut self) {
         let typeid = T::get_static_typeid() as usize;
         self.fs[typeid] = Box::new(T::new);
     }
 
     /// 根据TYPEID 返回 对象
+    #[inline]
     pub fn create(&self, typeid: u16) -> Option<Rc<dyn IBase>> {
         let typeid = typeid as usize;
         if let Some(p) = (self.fs[typeid])() {
@@ -94,8 +97,8 @@ impl ObjectManager {
         None
     }
 
-
     /// 写入RC
+    #[inline]
     fn write_ptr<T: IBase>(&self, data: &mut Data, arg: &Rc<T>) {
         let typeid = arg.get_typeid();
         data.write_bit7(typeid);
@@ -117,6 +120,7 @@ impl ObjectManager {
     }
 
     /// 写入一个 RC<IBASE> 对象
+    #[inline]
     pub(crate) fn write_rc<T: IBase>(&self, data: &mut Data, arg: &Option<Rc<T>>) {
         if let Some(arg) = arg {
             self.write_ptr(data, arg)
@@ -126,6 +130,7 @@ impl ObjectManager {
     }
 
     /// 写入一个weak
+    #[inline]
     pub(crate) fn write_weak<T: IBase>(&self, data: &mut Data, arg: &Option<Weak<T>>) {
         if let Some(arg) = arg {
             if let Some(x) = arg.upgrade() {
@@ -137,6 +142,7 @@ impl ObjectManager {
     }
 
     /// 写入一个可空类型
+    #[inline]
     pub(crate) fn write_option<T: WriteObject>(&self, data: &mut Data, arg: &Option<T>) {
         match arg {
             Some(x) => {
@@ -150,11 +156,13 @@ impl ObjectManager {
     }
 
     /// 写入一个obj
+    #[inline]
     pub(crate) fn write_obj<T: IBase>(&self, data: &mut Data, arg: &T) {
         arg.write(data, self)
     }
 
     /// 写入一个VEC
+    #[inline]
     pub(crate) fn write_vec<T: WriteObject>(&self, data: &mut Data, args: &Vec<T>) {
         data.write_bit7(args.len() as u64);
         if args.is_empty() {
@@ -167,6 +175,7 @@ impl ObjectManager {
     }
 
     /// 写入一个VEC
+    #[inline]
     pub(crate) fn write_vec_rc<T: IBase>(&self, data: &mut Data, args: &Vec<Rc<T>>) {
         data.write_bit7(args.len() as u64);
         if args.is_empty() {
@@ -179,16 +188,14 @@ impl ObjectManager {
     }
 
     /// 写入一个字符串
+    #[inline]
     pub(crate) fn write_string(&self, data: &mut Data, arg: &str) {
         data.write_str_bit7(arg)
     }
 
     /// 写入一个 treemap
-    pub(crate) fn write_treemap<K: WriteObject, V: WriteObject>(
-        &self,
-        data: &mut Data,
-        args: &BTreeMap<K, V>,
-    ) {
+    #[inline]
+    pub(crate) fn write_treemap<K: WriteObject, V: WriteObject>(&self, data: &mut Data, args: &BTreeMap<K, V>) {
         data.write_bit7(args.len() as u64);
         for (k, v) in args.iter() {
             k.write_(data, self);
@@ -197,11 +204,8 @@ impl ObjectManager {
     }
 
     /// 写入一个 treemap value 是RC<IBASE>
-    pub(crate) fn write_treemap_rc_value<K: WriteObject, V: IBase>(
-        &self,
-        data: &mut Data,
-        args: &BTreeMap<K, Rc<V>>,
-    ) {
+    #[inline]
+    pub(crate) fn write_treemap_rc_value<K: WriteObject, V: IBase>(&self, data: &mut Data, args: &BTreeMap<K, Rc<V>>) {
         data.write_bit7(args.len() as u64);
         for (k, v) in args.iter() {
             k.write_(data, self);
@@ -210,11 +214,8 @@ impl ObjectManager {
     }
 
     /// 写入一个hashmap
-    pub(crate) fn write_hashmap<K: WriteObject, V: WriteObject>(
-        &self,
-        data: &mut Data,
-        args: &HashMap<K, V>,
-    ) {
+    #[inline]
+    pub(crate) fn write_hashmap<K: WriteObject, V: WriteObject>(&self, data: &mut Data, args: &HashMap<K, V>) {
         data.write_bit7(args.len() as u64);
         for (k, v) in args.iter() {
             k.write_(data, self);
@@ -223,11 +224,8 @@ impl ObjectManager {
     }
 
     /// 写入一个hashmap value 是RC<IBASE>
-    pub(crate) fn write_hashmap_rc_value<K: WriteObject, V: IBase>(
-        &self,
-        data: &mut Data,
-        args: &HashMap<K, Rc<V>>,
-    ) {
+    #[inline]
+    pub(crate) fn write_hashmap_rc_value<K: WriteObject, V: IBase>(&self, data: &mut Data, args: &HashMap<K, Rc<V>>) {
         data.write_bit7(args.len() as u64);
         for (k, v) in args.iter() {
             k.write_(data, self);
@@ -236,11 +234,8 @@ impl ObjectManager {
     }
 
     /// 写入一个hashmap key 是RC<IBASE>
-    pub(crate) fn write_hashmap_rc_key<K: IBase, V: WriteObject>(
-        &self,
-        data: &mut Data,
-        args: &HashMap<Rc<K>, V>,
-    ) {
+    #[inline]
+    pub(crate) fn write_hashmap_rc_key<K: IBase, V: WriteObject>(&self, data: &mut Data, args: &HashMap<Rc<K>, V>) {
         data.write_bit7(args.len() as u64);
         for (k, v) in args.iter() {
             self.write_ptr(data, k);
@@ -249,11 +244,8 @@ impl ObjectManager {
     }
 
     /// 写入一个hashmap RC<IBASE>
-    pub(crate) fn write_hashmap_rc<K: IBase, V: IBase>(
-        &self,
-        data: &mut Data,
-        args: &HashMap<Rc<K>, Rc<V>>,
-    ) {
+    #[inline]
+    pub(crate) fn write_hashmap_rc<K: IBase, V: IBase>(&self, data: &mut Data, args: &HashMap<Rc<K>, Rc<V>>) {
         data.write_bit7(args.len() as u64);
         for (k, v) in args.iter() {
             self.write_ptr(data, k);
@@ -262,7 +254,8 @@ impl ObjectManager {
     }
 
     /// 读取RC IBASE
-    pub(crate) fn read_rc_ibase(&self,data:&mut Data,v:&mut Option<Rc<dyn IBase>>)-> Result<(), u32>{
+    #[inline]
+    pub(crate) fn read_rc_ibase(&self, data: &mut Data, v: &mut Option<Rc<dyn IBase>>) -> Result<(), u32> {
         let type_id = {
             match data.read_bit7_u16() {
                 None => {
@@ -318,13 +311,9 @@ impl ObjectManager {
         }
     }
 
-
     /// 填充RC
-    pub(crate) fn read_rc<T: IBase + IObjectBase + 'static>(
-        &self,
-        data: &mut Data,
-        v: &mut Option<Rc<T>>,
-    ) -> Result<(), u32> {
+    #[inline]
+    pub(crate) fn read_rc<T: IBase + IObjectBase + 'static>(&self, data: &mut Data, v: &mut Option<Rc<T>>) -> Result<(), u32> {
         let type_id = {
             match data.read_bit7_u16() {
                 None => {
@@ -394,11 +383,8 @@ impl ObjectManager {
     }
 
     /// 读取weak
-    pub(crate) fn read_weak<T: IBase + IObjectBase + 'static>(
-        &self,
-        data: &mut Data,
-        v: &mut Option<Weak<T>>,
-    ) -> Result<(), u32> {
+    #[inline]
+    pub(crate) fn read_weak<T: IBase + IObjectBase + 'static>(&self, data: &mut Data, v: &mut Option<Weak<T>>) -> Result<(), u32> {
         let mut rc: Option<Rc<T>> = None;
         self.read_rc(data, &mut rc)?;
         if let Some(rc) = rc {
@@ -410,20 +396,14 @@ impl ObjectManager {
     }
 
     /// 读取一个obj
-    pub(crate) fn read_obj<T: IBase + 'static>(
-        &self,
-        data: &mut Data,
-        v: &mut T,
-    ) -> Result<(), u32> {
+    #[inline]
+    pub(crate) fn read_obj<T: IBase + 'static>(&self, data: &mut Data, v: &mut T) -> Result<(), u32> {
         v.read(data, self)
     }
 
     /// 读取一个option
-    pub(crate) fn read_option<T: ReadObject + Default>(
-        &self,
-        data: &mut Data,
-        v: &mut Option<T>,
-    ) -> Result<(), u32> {
+    #[inline]
+    pub(crate) fn read_option<T: ReadObject + Default>(&self, data: &mut Data, v: &mut Option<T>) -> Result<(), u32> {
         if data.get_u8() == 1 {
             if let Some(v) = v {
                 v.read_(data, self)?;
@@ -441,11 +421,8 @@ impl ObjectManager {
     }
 
     ///读取 VEC<T> T为常规实现了default+ReadObject 的类型
-    pub(crate) fn read_vec_default<T: ReadObject + Default>(
-        &self,
-        data: &mut Data,
-        v: &mut Vec<T>,
-    ) -> Result<(), u32> {
+    #[inline]
+    pub(crate) fn read_vec_default<T: ReadObject + Default>(&self, data: &mut Data, v: &mut Vec<T>) -> Result<(), u32> {
         let size = {
             match data.read_bit7_u64() {
                 None => {
@@ -465,11 +442,8 @@ impl ObjectManager {
     }
 
     ///读取vec<T> T 为RC<IBASE>
-    pub(crate) fn read_vec_rc<T: IBase + IObjectBase + 'static>(
-        &self,
-        data: &mut Data,
-        v: &mut Vec<Rc<T>>,
-    ) -> Result<(), u32> {
+    #[inline]
+    pub(crate) fn read_vec_rc<T: IBase + IObjectBase + 'static>(&self, data: &mut Data, v: &mut Vec<Rc<T>>) -> Result<(), u32> {
         let size = {
             match data.read_bit7_u64() {
                 None => {
@@ -493,11 +467,8 @@ impl ObjectManager {
     }
 
     ///读取一个weak
-    pub(crate) fn read_vec_weak<T: IBase + IObjectBase + 'static>(
-        &self,
-        data: &mut Data,
-        v: &mut Vec<Weak<T>>,
-    ) -> Result<(), u32> {
+    #[inline]
+    pub(crate) fn read_vec_weak<T: IBase + IObjectBase + 'static>(&self, data: &mut Data, v: &mut Vec<Weak<T>>) -> Result<(), u32> {
         let size = {
             match data.read_bit7_u64() {
                 None => {
@@ -521,13 +492,9 @@ impl ObjectManager {
     }
 
     ///读取treemap 默认值KEY 默认值VALUE
-    pub(crate) fn read_treemap_rc_default<
-        K: ReadObject + Default + Ord,
-        V: ReadObject + Default,
-    >(
-        &self,
-        data: &mut Data,
-        v: &mut BTreeMap<K, V>,
+    #[inline]
+    pub(crate) fn read_treemap_rc_default<K: ReadObject + Default + Ord, V: ReadObject + Default>(
+        &self, data: &mut Data, v: &mut BTreeMap<K, V>,
     ) -> Result<(), u32> {
         let size = {
             match data.read_bit7_u64() {
@@ -550,13 +517,9 @@ impl ObjectManager {
     }
 
     ///读取treemap 默认值KEY,RC<IBASE> Value
-    pub(crate) fn read_treemap_rc_key_default<
-        K: ReadObject + Default + Ord,
-        V: IBase + IObjectBase + 'static,
-    >(
-        &self,
-        data: &mut Data,
-        v: &mut BTreeMap<K, Rc<V>>,
+    #[inline]
+    pub(crate) fn read_treemap_rc_key_default<K: ReadObject + Default + Ord, V: IBase + IObjectBase + 'static>(
+        &self, data: &mut Data, v: &mut BTreeMap<K, Rc<V>>,
     ) -> Result<(), u32> {
         let size = {
             match data.read_bit7_u64() {
@@ -584,13 +547,9 @@ impl ObjectManager {
     }
 
     ///读取hashmap 默认值KEY 默认值VALUE
-    pub(crate) fn read_hashmap_rc_default<
-        K: ReadObject + Default + Eq + Hash,
-        V: ReadObject + Default,
-    >(
-        &self,
-        data: &mut Data,
-        v: &mut HashMap<K, V>,
+    #[inline]
+    pub(crate) fn read_hashmap_rc_default<K: ReadObject + Default + Eq + Hash, V: ReadObject + Default>(
+        &self, data: &mut Data, v: &mut HashMap<K, V>,
     ) -> Result<(), u32> {
         let size = {
             match data.read_bit7_u64() {
@@ -613,13 +572,9 @@ impl ObjectManager {
     }
 
     ///读取hashmap 默认值KEY,RC<IBASE> Value
-    pub(crate) fn read_hashmap_rc_key_default<
-        K: ReadObject + Default + Eq + Hash,
-        V: IBase + IObjectBase + 'static,
-    >(
-        &self,
-        data: &mut Data,
-        v: &mut HashMap<K, Rc<V>>,
+    #[inline]
+    pub(crate) fn read_hashmap_rc_key_default<K: ReadObject + Default + Eq + Hash, V: IBase + IObjectBase + 'static>(
+        &self, data: &mut Data, v: &mut HashMap<K, Rc<V>>,
     ) -> Result<(), u32> {
         let size = {
             match data.read_bit7_u64() {
@@ -647,13 +602,9 @@ impl ObjectManager {
     }
 
     ///读取hashmap RC<IBASE> KEY Value
-    pub(crate) fn read_hashmap_rc<
-        K: IBase + IObjectBase + Eq + Hash + 'static,
-        V: IBase + IObjectBase + 'static,
-    >(
-        &self,
-        data: &mut Data,
-        v: &mut HashMap<Rc<K>, Rc<V>>,
+    #[inline]
+    pub(crate) fn read_hashmap_rc<K: IBase + IObjectBase + Eq + Hash + 'static, V: IBase + IObjectBase + 'static>(
+        &self, data: &mut Data, v: &mut HashMap<Rc<K>, Rc<V>>,
     ) -> Result<(), u32> {
         let size = {
             match data.read_bit7_u64() {
@@ -686,13 +637,9 @@ impl ObjectManager {
     }
 
     ///读取hashmap RC<IBASE> Key  默认值Value
-    pub(crate) fn read_hashmap_rc_value_default<
-        K: IBase + IObjectBase + Eq + Hash + 'static,
-        V: ReadObject + Default,
-    >(
-        &self,
-        data: &mut Data,
-        v: &mut HashMap<Rc<K>, V>,
+    #[inline]
+    pub(crate) fn read_hashmap_rc_value_default<K: IBase + IObjectBase + Eq + Hash + 'static, V: ReadObject + Default>(
+        &self, data: &mut Data, v: &mut HashMap<Rc<K>, V>,
     ) -> Result<(), u32> {
         let size = {
             match data.read_bit7_u64() {
@@ -726,78 +673,91 @@ pub trait WriteObject {
 }
 
 impl<T: IBase + WriteObject> WriteObject for Option<Rc<T>> {
+    #[inline]
     fn write_(&self, data: &mut Data, obj_manager: &ObjectManager) {
         obj_manager.write_rc(data, self);
     }
 }
 
 impl<T: IBase + WriteObject> WriteObject for Option<Weak<T>> {
+    #[inline]
     fn write_(&self, data: &mut Data, obj_manager: &ObjectManager) {
         obj_manager.write_weak(data, self);
     }
 }
 
 impl<T: IBase> WriteObject for T {
+    #[inline]
     fn write_(&self, data: &mut Data, obj_manager: &ObjectManager) {
         obj_manager.write_obj(data, self);
     }
 }
 
 impl<T: WriteObject> WriteObject for Option<T> {
+    #[inline]
     fn write_(&self, data: &mut Data, obj_manager: &ObjectManager) {
         obj_manager.write_option(data, self);
     }
 }
 
 impl<T: WriteObject> WriteObject for Vec<T> {
+    #[inline]
     fn write_(&self, data: &mut Data, obj_manager: &ObjectManager) {
         obj_manager.write_vec(data, self);
     }
 }
 
 impl<T: IBase> WriteObject for Vec<Rc<T>> {
+    #[inline]
     fn write_(&self, data: &mut Data, obj_manager: &ObjectManager) {
         obj_manager.write_vec_rc(data, self);
     }
 }
 
 impl WriteObject for String {
+    #[inline]
     fn write_(&self, data: &mut Data, obj_manager: &ObjectManager) {
         obj_manager.write_string(data, self);
     }
 }
 
 impl<K: WriteObject, V: WriteObject> WriteObject for BTreeMap<K, V> {
+    #[inline]
     fn write_(&self, data: &mut Data, obj_manager: &ObjectManager) {
         obj_manager.write_treemap(data, self);
     }
 }
 
 impl<K: WriteObject, V: WriteObject> WriteObject for HashMap<K, V> {
+    #[inline]
     fn write_(&self, data: &mut Data, obj_manager: &ObjectManager) {
         obj_manager.write_hashmap(data, self);
     }
 }
 
 impl<K: WriteObject, V: IBase> WriteObject for HashMap<K, Rc<V>> {
+    #[inline]
     fn write_(&self, data: &mut Data, obj_manager: &ObjectManager) {
         obj_manager.write_hashmap_rc_value(data, self);
     }
 }
 
 impl<K: IBase, V: WriteObject> WriteObject for HashMap<Rc<K>, V> {
+    #[inline]
     fn write_(&self, data: &mut Data, obj_manager: &ObjectManager) {
         obj_manager.write_hashmap_rc_key(data, self);
     }
 }
 
 impl<K: IBase, V: IBase> WriteObject for HashMap<Rc<K>, Rc<V>> {
+    #[inline]
     fn write_(&self, data: &mut Data, obj_manager: &ObjectManager) {
         obj_manager.write_hashmap_rc(data, self);
     }
 }
 
 impl<K: WriteObject, V: IBase> WriteObject for BTreeMap<K, Rc<V>> {
+    #[inline]
     fn write_(&self, data: &mut Data, obj_manager: &ObjectManager) {
         obj_manager.write_treemap_rc_value(data, self);
     }
@@ -806,6 +766,7 @@ impl<K: WriteObject, V: IBase> WriteObject for BTreeMap<K, Rc<V>> {
 macro_rules! impl_integer_var {
     ($type:ty) => {
         impl WriteObject for $type {
+            #[inline]
             fn write_(&self, data: &mut Data, _: &ObjectManager) {
                 data.write_bit7(*self)
             }
@@ -814,12 +775,14 @@ macro_rules! impl_integer_var {
 }
 
 impl WriteObject for i8 {
+    #[inline]
     fn write_(&self, data: &mut Data, _: &ObjectManager) {
         data.put_i8(*self);
     }
 }
 
 impl WriteObject for u8 {
+    #[inline]
     fn write_(&self, data: &mut Data, _: &ObjectManager) {
         data.put_u8(*self);
     }
@@ -833,30 +796,32 @@ impl_integer_var!(i64);
 impl_integer_var!(u64);
 
 impl WriteObject for f32 {
+    #[inline]
     fn write_(&self, data: &mut Data, _: &ObjectManager) {
         data.put_f32_le(*self);
     }
 }
 
 impl WriteObject for f64 {
+    #[inline]
     fn write_(&self, data: &mut Data, _: &ObjectManager) {
         data.put_f64_le(*self);
     }
 }
 
 impl<T: WriteObject> WriteObject for RefCell<T> {
+    #[inline]
     fn write_(&self, data: &mut Data, obj_manager: &ObjectManager) {
         self.borrow().write_(data, obj_manager);
     }
 }
 
 impl<T: WriteObject + Copy> WriteObject for Cell<T> {
+    #[inline]
     fn write_(&self, data: &mut Data, obj_manager: &ObjectManager) {
         self.get().write_(data, obj_manager);
     }
 }
-
-
 
 pub trait ReadObject {
     fn read_(&mut self, data: &mut Data, obj_manager: &ObjectManager) -> Result<(), u32>;
@@ -867,101 +832,105 @@ pub trait ReadOnlyObject {
 }
 
 impl<T: IBase + 'static> ReadObject for T {
+    #[inline]
     fn read_(&mut self, data: &mut Data, obj_manager: &ObjectManager) -> Result<(), u32> {
         obj_manager.read_obj(data, self)
     }
 }
 
-
-
 impl ReadObject for Option<Rc<dyn IBase>> {
+    #[inline]
     fn read_(&mut self, data: &mut Data, obj_manager: &ObjectManager) -> Result<(), u32> {
         obj_manager.read_rc_ibase(data, self)
     }
 }
 
 impl<T: IBase + IObjectBase + 'static> ReadObject for Option<Rc<T>> {
+    #[inline]
     fn read_(&mut self, data: &mut Data, obj_manager: &ObjectManager) -> Result<(), u32> {
         obj_manager.read_rc(data, self)
     }
 }
 
 impl<T: IBase + IObjectBase + 'static> ReadObject for Option<Weak<T>> {
+    #[inline]
     fn read_(&mut self, data: &mut Data, obj_manager: &ObjectManager) -> Result<(), u32> {
         obj_manager.read_weak(data, self)
     }
 }
 
 impl<T: ReadObject + Default> ReadObject for Option<T> {
+    #[inline]
     fn read_(&mut self, data: &mut Data, obj_manager: &ObjectManager) -> Result<(), u32> {
         obj_manager.read_option(data, self)
     }
 }
 
 impl<T: ReadObject + Default> ReadObject for Vec<T> {
+    #[inline]
     fn read_(&mut self, data: &mut Data, obj_manager: &ObjectManager) -> Result<(), u32> {
         obj_manager.read_vec_default(data, self)
     }
 }
 
 impl<T: IBase + IObjectBase + 'static> ReadObject for Vec<Rc<T>> {
+    #[inline]
     fn read_(&mut self, data: &mut Data, obj_manager: &ObjectManager) -> Result<(), u32> {
         obj_manager.read_vec_rc(data, self)
     }
 }
 
 impl<T: IBase + IObjectBase + 'static> ReadObject for Vec<Weak<T>> {
+    #[inline]
     fn read_(&mut self, data: &mut Data, obj_manager: &ObjectManager) -> Result<(), u32> {
         obj_manager.read_vec_weak(data, self)
     }
 }
 
-
 impl<K: ReadObject + Default + Ord, V: ReadObject + Default> ReadObject for BTreeMap<K, V> {
+    #[inline]
     fn read_(&mut self, data: &mut Data, obj_manager: &ObjectManager) -> Result<(), u32> {
         obj_manager.read_treemap_rc_default(data, self)
     }
 }
 
-impl<K: ReadObject + Default + Ord, V: IBase + IObjectBase + 'static> ReadObject
-    for BTreeMap<K, Rc<V>>
-{
+impl<K: ReadObject + Default + Ord, V: IBase + IObjectBase + 'static> ReadObject for BTreeMap<K, Rc<V>> {
+    #[inline]
     fn read_(&mut self, data: &mut Data, obj_manager: &ObjectManager) -> Result<(), u32> {
         obj_manager.read_treemap_rc_key_default(data, self)
     }
 }
 
 impl<K: ReadObject + Default + Eq + Hash, V: ReadObject + Default> ReadObject for HashMap<K, V> {
+    #[inline]
     fn read_(&mut self, data: &mut Data, obj_manager: &ObjectManager) -> Result<(), u32> {
         obj_manager.read_hashmap_rc_default(data, self)
     }
 }
 
-impl<K: ReadObject + Default + Eq + Hash, V: IBase + IObjectBase + 'static> ReadObject
-    for HashMap<K, Rc<V>>
-{
+impl<K: ReadObject + Default + Eq + Hash, V: IBase + IObjectBase + 'static> ReadObject for HashMap<K, Rc<V>> {
+    #[inline]
     fn read_(&mut self, data: &mut Data, obj_manager: &ObjectManager) -> Result<(), u32> {
         obj_manager.read_hashmap_rc_key_default(data, self)
     }
 }
 
-impl<K: IBase + IObjectBase + Eq + Hash + 'static, V: IBase + IObjectBase + 'static> ReadObject
-    for HashMap<Rc<K>, Rc<V>>
-{
+impl<K: IBase + IObjectBase + Eq + Hash + 'static, V: IBase + IObjectBase + 'static> ReadObject for HashMap<Rc<K>, Rc<V>> {
+    #[inline]
     fn read_(&mut self, data: &mut Data, obj_manager: &ObjectManager) -> Result<(), u32> {
         obj_manager.read_hashmap_rc(data, self)
     }
 }
 
-impl<K: IBase + IObjectBase + Eq + Hash + 'static, V: ReadObject + Default> ReadObject
-    for HashMap<Rc<K>, V>
-{
+impl<K: IBase + IObjectBase + Eq + Hash + 'static, V: ReadObject + Default> ReadObject for HashMap<Rc<K>, V> {
+    #[inline]
     fn read_(&mut self, data: &mut Data, obj_manager: &ObjectManager) -> Result<(), u32> {
         obj_manager.read_hashmap_rc_value_default(data, self)
     }
 }
 
 impl ReadObject for String {
+    #[inline]
     fn read_(&mut self, data: &mut Data, _: &ObjectManager) -> Result<(), u32> {
         match data.get_str_bit7() {
             None => return Err(line!()),
@@ -974,6 +943,7 @@ impl ReadObject for String {
 macro_rules! impl_read_object_integer {
     ($type:ty) => {
         impl ReadObject for $type {
+            #[inline]
             fn read_(&mut self, data: &mut Data, _: &ObjectManager) -> Result<(), u32> {
                 match data.get_bit7::<$type>() {
                     None => Err(line!()),
@@ -995,6 +965,7 @@ impl_read_object_integer!(i64);
 impl_read_object_integer!(u64);
 
 impl ReadObject for i8 {
+    #[inline]
     fn read_(&mut self, data: &mut Data, _: &ObjectManager) -> Result<(), u32> {
         *self = data.get_i8();
         Ok(())
@@ -1002,6 +973,7 @@ impl ReadObject for i8 {
 }
 
 impl ReadObject for u8 {
+    #[inline]
     fn read_(&mut self, data: &mut Data, _: &ObjectManager) -> Result<(), u32> {
         *self = data.get_u8();
         Ok(())
@@ -1009,6 +981,7 @@ impl ReadObject for u8 {
 }
 
 impl ReadObject for i128 {
+    #[inline]
     fn read_(&mut self, data: &mut Data, _: &ObjectManager) -> Result<(), u32> {
         *self = data.get_i128_le();
         Ok(())
@@ -1016,6 +989,7 @@ impl ReadObject for i128 {
 }
 
 impl ReadObject for u128 {
+    #[inline]
     fn read_(&mut self, data: &mut Data, _: &ObjectManager) -> Result<(), u32> {
         *self = data.get_u128_le();
         Ok(())
@@ -1023,6 +997,7 @@ impl ReadObject for u128 {
 }
 
 impl ReadObject for f32 {
+    #[inline]
     fn read_(&mut self, data: &mut Data, _: &ObjectManager) -> Result<(), u32> {
         *self = data.get_f32_le();
         Ok(())
@@ -1030,6 +1005,7 @@ impl ReadObject for f32 {
 }
 
 impl ReadObject for f64 {
+    #[inline]
     fn read_(&mut self, data: &mut Data, _: &ObjectManager) -> Result<(), u32> {
         *self = data.get_f64_le();
         Ok(())
@@ -1037,6 +1013,7 @@ impl ReadObject for f64 {
 }
 
 impl<T: ReadObject + Copy> ReadOnlyObject for Cell<T> {
+    #[inline]
     fn read_(&self, data: &mut Data, obj_manager: &ObjectManager) -> Result<(), u32> {
         let mut v = self.get();
         v.read_(data, obj_manager)?;
@@ -1046,8 +1023,8 @@ impl<T: ReadObject + Copy> ReadOnlyObject for Cell<T> {
 }
 
 impl<T: ReadObject> ReadOnlyObject for RefCell<T> {
+    #[inline]
     fn read_(&self, data: &mut Data, obj_manager: &ObjectManager) -> Result<(), u32> {
         self.borrow_mut().read_(data, obj_manager)
     }
 }
-

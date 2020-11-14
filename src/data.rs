@@ -1,9 +1,9 @@
+use crate::IBase;
 use bytes::buf::UninitSlice;
 use bytes::{Buf, BufMut};
 use paste::paste;
 use std::collections::HashMap;
 use std::rc::Rc;
-use crate::IBase;
 
 #[derive(Debug)]
 pub struct Data {

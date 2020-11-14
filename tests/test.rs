@@ -275,7 +275,6 @@ pub fn test_obj_manager_register_create() {
 
 #[test]
 pub fn test_struct_1() -> Result<(), u32> {
-
     fn new_path() -> Path {
         Path {
             x: Cell::new(1000),
@@ -284,8 +283,6 @@ pub fn test_struct_1() -> Result<(), u32> {
         }
     }
 
-
-
     fn new_path_base() -> Rc<PathBase> {
         let path_base = PathBase::default();
         path_base.index.set(100);
@@ -293,12 +290,10 @@ pub fn test_struct_1() -> Result<(), u32> {
         Rc::new(path_base)
     }
 
-
     let mut obj_manager = ObjectManager::new();
     obj_manager.register::<Path>();
     obj_manager.register::<PathBase>();
     let mut data = Data::new();
-
 
     obj_manager.write_to(&mut data, &1);
     obj_manager.write_to(&mut data, &1.0f32);
@@ -325,7 +320,7 @@ pub fn test_struct_1() -> Result<(), u32> {
     let vec = vec![new_path_base(), new_path_base(), new_path_base()];
     obj_manager.write_to(&mut data, &vec);
 
-   // ---------------------read----------------------------------------
+    // ---------------------read----------------------------------------
     let mut i = i32::default();
     obj_manager.read_from(&mut data, &mut i)?;
     assert_eq!(1, i);
@@ -376,7 +371,7 @@ pub fn test_struct_2() -> Result<(), u32> {
         let base = Base::default();
         base.id.set(1000);
         base.name.replace("test ppp".to_string());
-        base.data.replace(vec![1,2,3,4,5]);
+        base.data.replace(vec![1, 2, 3, 4, 5]);
         base
     };
 
@@ -386,104 +381,120 @@ pub fn test_struct_2() -> Result<(), u32> {
     obj_manager.read_from(&mut data, &mut test_base)?;
     assert_eq!(base, test_base);
 
-    let test=Rc::new(make_base());
-    obj_manager.write_core(&mut data,&test);
-    let x= obj_manager.read_core(&mut data)?;
-    assert_eq!(test,x.cast::<Base>().unwrap());
+    let test = Rc::new(make_base());
+    obj_manager.write_core(&mut data, &test);
+    let x = obj_manager.read_core(&mut data)?;
+    assert_eq!(test, x.cast::<Base>().unwrap());
 
-    let make_fly=||{
-        let fly=Fly::default();
-        *fly.base.borrow_mut()=make_base();
+    let make_fly = || {
+        let fly = Fly::default();
+        *fly.base.borrow_mut() = make_base();
         fly.x.set(1.1);
         fly.y.set(2.2);
-        let base=Rc::new(make_base());
-        let base_weak=Rc::downgrade(&base);
+        let base = Rc::new(make_base());
+        let base_weak = Rc::downgrade(&base);
         fly.wk.set(base_weak.clone());
         fly.rc.set(base.clone());
-        *fly.vec.borrow_mut()=vec![Some(base.clone()),Some(base.clone()),Some(base.clone()),Some(base.clone())];
-        *fly.vec_wk.borrow_mut()=vec![Some(base_weak.clone()),Some(base_weak.clone()),Some(base_weak.clone()),Some(base_weak.clone())];
-        let mut hashmap=HashMap::new();
-        hashmap.insert(1,Some(base.clone()));
-        hashmap.insert(2,Some(base.clone()));
-        hashmap.insert(3,Some(base.clone()));
-        *fly.hash.borrow_mut()=hashmap;
+        *fly.vec.borrow_mut() = vec![Some(base.clone()), Some(base.clone()), Some(base.clone()), Some(base.clone())];
+        *fly.vec_wk.borrow_mut() = vec![
+            Some(base_weak.clone()),
+            Some(base_weak.clone()),
+            Some(base_weak.clone()),
+            Some(base_weak.clone()),
+        ];
+        let mut hashmap = HashMap::new();
+        hashmap.insert(1, Some(base.clone()));
+        hashmap.insert(2, Some(base.clone()));
+        hashmap.insert(3, Some(base.clone()));
+        *fly.hash.borrow_mut() = hashmap;
 
-        let mut hashmap=HashMap::new();
-        hashmap.insert(1,Some(base_weak.clone()));
-        hashmap.insert(2,Some(base_weak.clone()));
-        hashmap.insert(3,Some(base_weak.clone()));
-        *fly.hash_wk.borrow_mut()=hashmap;
+        let mut hashmap = HashMap::new();
+        hashmap.insert(1, Some(base_weak.clone()));
+        hashmap.insert(2, Some(base_weak.clone()));
+        hashmap.insert(3, Some(base_weak.clone()));
+        *fly.hash_wk.borrow_mut() = hashmap;
 
-        let mut treemap=BTreeMap::new();
-        treemap.insert(1,Some(base.clone()));
-        treemap.insert(2,Some(base.clone()));
-        treemap.insert(3,Some(base.clone()));
-        *fly.treemap.borrow_mut()=treemap;
+        let mut treemap = BTreeMap::new();
+        treemap.insert(1, Some(base.clone()));
+        treemap.insert(2, Some(base.clone()));
+        treemap.insert(3, Some(base.clone()));
+        *fly.treemap.borrow_mut() = treemap;
 
-        let mut treemap=BTreeMap::new();
-        treemap.insert(1,Some(base_weak.clone()));
-        treemap.insert(2,Some(base_weak.clone()));
-        treemap.insert(3,Some(base_weak.clone()));
-        *fly.treemap_wk.borrow_mut()=treemap;
+        let mut treemap = BTreeMap::new();
+        treemap.insert(1, Some(base_weak.clone()));
+        treemap.insert(2, Some(base_weak.clone()));
+        treemap.insert(3, Some(base_weak.clone()));
+        *fly.treemap_wk.borrow_mut() = treemap;
 
         fly
     };
 
-    let test=Rc::new(make_fly());
-    obj_manager.write_core(&mut data,&test);
-    let x= obj_manager.read_core(&mut data)?;
-    let m=x.cast::<Fly>().unwrap();
-    assert_eq!(test.base,m.base);
-    assert_eq!(test.x,m.x);
-    assert_eq!(test.y,m.y);
+    let test = Rc::new(make_fly());
+    obj_manager.write_core(&mut data, &test);
+    let x = obj_manager.read_core(&mut data)?;
+    let m = x.cast::<Fly>().unwrap();
+    assert_eq!(test.base, m.base);
+    assert_eq!(test.x, m.x);
+    assert_eq!(test.y, m.y);
 
-    let y= m.rc.get().unwrap().clone();
-    assert_eq!(Rc::new(make_base()),y);
-    let x= m.wk.get().unwrap().upgrade().unwrap();
-    assert_eq!(x,y);
+    let y = m.rc.get().unwrap().clone();
+    assert_eq!(Rc::new(make_base()), y);
+    let x = m.wk.get().unwrap().upgrade().unwrap();
+    assert_eq!(x, y);
 
-    let base=y.clone();
-    assert_eq!(vec![Some(base.clone()),Some(base.clone()),Some(base.clone()),Some(base.clone())],*m.vec.borrow_mut());
+    let base = y.clone();
+    assert_eq!(
+        vec![Some(base.clone()), Some(base.clone()), Some(base.clone()), Some(base.clone())],
+        *m.vec.borrow_mut()
+    );
     for x in m.vec_wk.borrow().iter() {
-        assert_eq!(base,x.clone().unwrap().upgrade().unwrap());
+        assert_eq!(base, x.clone().unwrap().upgrade().unwrap());
     }
 
-    for (key,value) in test.hash.borrow().iter() {
-        assert!(*key>0&&*key<4,"{}",key);
-        assert_eq!(base,value.clone().unwrap());
+    for (key, value) in test.hash.borrow().iter() {
+        assert!(*key > 0 && *key < 4, "{}", key);
+        assert_eq!(base, value.clone().unwrap());
     }
 
-    for (key,value) in test.hash_wk.borrow().iter() {
-        assert!(*key>0&&*key<4,"{}",key);
-        assert_eq!(base,value.clone().unwrap().upgrade().unwrap());
+    for (key, value) in test.hash_wk.borrow().iter() {
+        assert!(*key > 0 && *key < 4, "{}", key);
+        assert_eq!(base, value.clone().unwrap().upgrade().unwrap());
     }
-    for (i,(key,value)) in test.treemap.borrow().iter().enumerate() {
-        assert_eq!(i as i64+1,*key);
-        assert_eq!(base,value.clone().unwrap());
+    for (i, (key, value)) in test.treemap.borrow().iter().enumerate() {
+        assert_eq!(i as i64 + 1, *key);
+        assert_eq!(base, value.clone().unwrap());
     }
 
-    for (i,(key,value)) in test.treemap_wk.borrow().iter().enumerate() {
-        assert_eq!(i as i64+1,*key);
-        assert_eq!(base,value.clone().unwrap().upgrade().unwrap());
+    for (i, (key, value)) in test.treemap_wk.borrow().iter().enumerate() {
+        assert_eq!(i as i64 + 1, *key);
+        assert_eq!(base, value.clone().unwrap().upgrade().unwrap());
     }
 
     Ok(())
 }
 
 #[test]
-pub fn test_marco_struct(){
+pub fn test_marco_struct() -> Result<(), u32> {
+    // 申明 注册结构
     let mut obj_manager = ObjectManager::new();
     obj_manager.register::<Foo>();
     obj_manager.register::<Foo2>();
 
-    let foo:Rc<Foo2>=Rc::new(Foo2::default());
-    foo.ptr.set(Rc::new(Foo::default()));
+    // 创建一个空buff
     let mut data = Data::new();
+
+    let foo: Rc<Foo2> = Rc::new(Foo2::default());
+    foo.ptr.set(Rc::new(Foo::default()));
+
+    // 往buff写入foo
     obj_manager.write_core(&mut data, &foo);
+    // 从buff读取foo
+    let x = obj_manager.read_core(&mut data)?.cast::<Foo2>().unwrap();
 
-    let x= obj_manager.read_core(&mut data).unwrap();
-    let x=x.cast::<Foo2>().unwrap();
+    assert_eq!(foo.to_string(), x.to_string());
 
-    assert_eq!(foo.to_string(),x.to_string());
-    println!("{}",x.to_string());
+    println!("{:?}", data);
+    println!("{}", x.to_string());
+
+    Ok(())
 }

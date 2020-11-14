@@ -24,11 +24,7 @@ impl IBase for Path {
         obj_manager.write(data, &self.name);
     }
 
-    fn read(
-        &self,
-        data: &mut Data,
-        obj_manager: &ObjectManager,
-    ) -> std::result::Result<(), u32> {
+    fn read(&self, data: &mut Data, obj_manager: &ObjectManager) -> std::result::Result<(), u32> {
         obj_manager.read(data, &self.x)?;
         obj_manager.read(data, &self.y)?;
         obj_manager.read(data, &self.name)?;
@@ -59,11 +55,7 @@ impl IBase for PathBase {
         obj_manager.write(data, &self.path);
     }
 
-    fn read(
-        &self,
-        data: &mut Data,
-        obj_manager: &ObjectManager,
-    ) -> std::result::Result<(), u32> {
+    fn read(&self, data: &mut Data, obj_manager: &ObjectManager) -> std::result::Result<(), u32> {
         obj_manager.read(data, &self.index)?;
         obj_manager.read(data, &self.path)?;
         Ok(())
