@@ -21,3 +21,5 @@ pub struct Foo2 {
     pub name: RefCell<Option<String>>,
     pub ptr: RefCell<Option<Rc<Foo>>>,
 }
+
+

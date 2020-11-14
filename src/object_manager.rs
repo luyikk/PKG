@@ -38,7 +38,7 @@ impl IObjectManager for ObjectManager {
     ///写入RC<IBASE>
     #[inline]
     fn write_core<T: IBase>(&self, data: &mut Data, arg: &Rc<T>) {
-        //arg.write_(data,self);
+        data.w_ptr_dict.clear();
         self.write_ptr(data, arg);
     }
 
@@ -61,7 +61,7 @@ impl IObjectManager for ObjectManager {
     fn read_core(&self, data: &mut Data) -> Result<Rc<dyn IBase>, u32> {
         let mut value: Option<Rc<dyn IBase>> = None;
         value.read_(data, self)?;
-
+        data.r_ptr_dict.clear();
         match value {
             None => Err(line!()),
             Some(p) => Ok(p),

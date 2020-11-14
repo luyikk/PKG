@@ -114,6 +114,12 @@ impl Data {
         self.offset = 0;
     }
 
+    /// 重置长度
+    #[inline]
+    pub fn resize(&mut self,new_len:usize,value:u8) {
+        self.buf.resize(new_len, value);
+    }
+
     /// 清理
     #[inline]
     pub fn clear(&mut self) {
@@ -124,7 +130,8 @@ impl Data {
     /// 写入buff
     #[inline]
     pub fn write(&mut self, buff: &[u8]) {
-        self.buf.extend_from_slice(buff)
+        //self.buf.extend_from_slice(buff)
+        self.write_ptr(buff.as_ptr(),buff.len());
     }
 
     #[inline]

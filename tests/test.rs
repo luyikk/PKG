@@ -9,6 +9,7 @@ use std::collections::{BTreeMap, HashMap};
 use std::error::Error;
 use std::rc::Rc;
 use test_struct::*;
+use std::time::Instant;
 
 #[test]
 fn test_buff() -> Result<(), Box<dyn Error>> {
@@ -484,7 +485,7 @@ pub fn test_marco_struct() -> Result<(), u32> {
     let mut data = Data::new();
 
     let foo: Rc<Foo2> = Rc::new(Foo2::default());
-    foo.ptr.set(Rc::new(Foo::default()));
+    //foo.ptr.set(Rc::new(Foo::default()));
 
     // 往buff写入foo
     obj_manager.write_core(&mut data, &foo);
@@ -497,4 +498,39 @@ pub fn test_marco_struct() -> Result<(), u32> {
     println!("{}", x.to_string());
 
     Ok(())
+}
+
+#[test]
+pub fn test_x(){
+    // 申明 注册结构
+    let mut obj_manager = ObjectManager::new();
+    obj_manager.register::<Foo>();
+    obj_manager.register::<Foo2>();
+
+    let foo_test=Foo2::default();
+    foo_test.ptr.set(Rc::new(Foo::default()));
+    let mut foo: Option<Rc<Foo2>> =Some(Rc::new(foo_test));
+
+
+    // 创建一个空buff
+    let mut data = Data::new();
+
+    let start=Instant::now();
+    for _ in 0..10000000 {
+        data.resize(0,0);
+        // 往buff写入foo
+        obj_manager.write_to(&mut data, &foo);
+    }
+    println!("write {:?} s",start.elapsed().as_secs_f32());
+
+
+
+    // let start=Instant::now();
+    // for _ in 0..1000000{
+    //     data.set_position(0);
+    //     // 往buff写入foo
+    //     obj_manager.read_from(&mut data,&mut foo).unwrap();
+    // }
+    //
+    // println!("read {:?} s",start.elapsed().as_secs_f32());
 }
