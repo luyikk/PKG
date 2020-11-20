@@ -525,12 +525,12 @@ pub fn test_x(){
 
 
 
-    // let start=Instant::now();
-    // for _ in 0..1000000{
-    //     data.set_position(0);
-    //     // 往buff写入foo
-    //     obj_manager.read_from(&mut data,&mut foo).unwrap();
-    // }
-    //
-    // println!("read {:?} s",start.elapsed().as_secs_f32());
+    let start=Instant::now();
+    for _ in 0..10000000{
+        data.set_position(0);
+        // 往buff写入foo
+        obj_manager.read_from(&mut data,&mut foo).unwrap();
+    }
+
+    println!("read {:?} s",start.elapsed().as_secs_f32());
 }

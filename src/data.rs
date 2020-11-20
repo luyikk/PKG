@@ -2,15 +2,15 @@ use crate::IBase;
 use bytes::buf::UninitSlice;
 use bytes::{Buf, BufMut};
 use paste::paste;
-use std::collections::HashMap;
+use ahash::AHashMap;
 use std::rc::Rc;
 
 #[derive(Debug)]
 pub struct Data {
     buf: Vec<u8>,
     offset: usize,
-    pub(crate) w_ptr_dict: HashMap<usize, u32>,
-    pub(crate) r_ptr_dict: HashMap<u32, Rc<dyn IBase>>,
+    pub(crate) w_ptr_dict: AHashMap<usize, u32>,
+    pub(crate) r_ptr_dict: AHashMap<u32, Rc<dyn IBase>>,
 }
 
 unsafe impl BufMut for Data {
@@ -63,8 +63,8 @@ impl Default for Data {
         Data {
             buf: Vec::new(),
             offset: 0,
-            w_ptr_dict: HashMap::new(),
-            r_ptr_dict: HashMap::new(),
+            w_ptr_dict: AHashMap::new(),
+            r_ptr_dict: AHashMap::new(),
         }
     }
 }
@@ -80,8 +80,8 @@ impl Data {
         Data {
             buf: Vec::with_capacity(cap),
             offset: 0,
-            w_ptr_dict: HashMap::new(),
-            r_ptr_dict: HashMap::new(),
+            w_ptr_dict: AHashMap::new(),
+            r_ptr_dict: AHashMap::new(),
         }
     }
 
